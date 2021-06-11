@@ -28,7 +28,8 @@ if __name__ == "__main__":
         return ip
 
 
-    def tcp_listener(local_ip=get_ip(), port=9000, mode="active"):
+    def tcp_listener(local_ip=get_ip(), port=9000, mode="active",
+                     syslog_server="127.0.0.1", syslog_port=514):
         """
         Starts listening on the specified TCP port to try to catch an
         attacker
@@ -38,19 +39,22 @@ if __name__ == "__main__":
         countermeasure. Active mode attempts to automatically block
         attackers. Passive mode does not. Set to active by default.
         (str)
-        :return: Returns attacker's IP address as str (may or may not be
-        in the final version)
+        :param syslog_server: str - IP address of syslog server.
+        Defaults to localhost.
+        :param syslog_port: int - Port number of syslog server. Defaults
+        to 514.
         """
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host_address = (local_ip, port)
         tcp_socket.bind(host_address)
         while True:
             tcp_socket.listen()
+            print("Listening on " + local_ip + ":" + str(port))
             connection, attacker_ip = tcp_socket.accept()
             if connection:
                 connection.close()
-                print(attacker_ip[0] + " accessed the honeyport.")
-                send_syslog(attacker_ip[0])
+                print(attacker_ip[0] + " took the bait!")
+                send_syslog(attacker_ip[0], syslog_server, syslog_port)
                 if mode == "active":
                     if host_os == "nt":
                         add_windows_firewall_rule(attacker_ip[0])
@@ -114,12 +118,14 @@ if __name__ == "__main__":
 
 
     def add_linux_firewall_rule(attacker_ip, firewall_package):
+        # This still needs to be tested. Not ready to use.
         """
         Automatically adds a firewall rule blocking the attacker.
         :param attacker_ip: str - IP address of attacker.
         :param firewall_package: str - name of firewall package running
         on system.
         """
+
         if firewall_package is not False:
             if firewall_package == "firewalld":
                 rule_text = "firewall-cmd --permanent " \
@@ -155,17 +161,87 @@ if __name__ == "__main__":
         handler = logging.handlers.SysLogHandler(address=(syslog_server,
                                                           syslog_port))
         logger.addHandler(handler)
-        logger.critical("flytrap: " + attacker_ip + " accessed the "
-                                                        "honeyport.")
+        logger.critical("flytrap: " + attacker_ip + " took the bait!")
 
+
+    def menu():
+        """
+        Interactive menu for users calling the program directly without
+        arguments. Gathers input and passes it to tcp_listener()
+        """
+        # Not ready to use. We need to add input validation.
+        print("Some sweet ascii art here maybe?")
+        print("-" * 80)
+        print("This software provides ABSOLUTELY NO WARRANTY. Use at your "
+              "own risk.")
+        print("-" * 80)
+        print("Press Enter to use default values, or type Q at any time to "
+              "quit.")
+        print("-" * 80)
+        local_ip = input("Enter the local IP address you'd like to use ["
+                         "Default - " + get_ip() + "]: ")
+        if local_ip == "":
+            local_ip = get_ip()
+        elif local_ip == "q" or local_ip == "Q":
+            print("Exiting.")
+            quit()
+        else:
+            pass
+
+        port = input("Enter the TCP port to listen on [Default - 9000]: ")
+        if port == "":
+            port = 9000
+        elif port == "q" or port == "Q":
+            print("Exiting.")
+            quit()
+        elif int(port) not in range(1, 65545):
+            print("Not a valid port number.")
+        else:
+            pass
+
+        mode = input("Run in active or passive mode [Default - active]: ")
+        if mode == "":
+            mode = "active"
+        elif mode == "q" or mode == "Q":
+            print("Exiting.")
+            quit()
+        else:
+            mode = mode.casefold()
+
+        syslog_server = input("Enter the IP address of your syslog server "
+                              "[Default - 127.0.0.1]: ")
+        if syslog_server == "":
+            syslog_server = "127.0.0.1"
+        elif syslog_server == "q" or syslog_server == "Q":
+            print("Exiting.")
+            quit()
+        else:
+            pass
+
+        syslog_port = input("Enter the syslog port to use [Default - 514]: ")
+        if syslog_port == "":
+            syslog_port = 514
+        elif syslog_port == "q" or syslog_port == "Q":
+            print("Exiting.")
+            quit()
+        elif int(syslog_port) not in range(1, 65545):
+            print("Not a valid port number.")
+        else:
+            pass
+        print(local_ip, port, mode, syslog_server, syslog_port)
+
+        tcp_listener(local_ip, port, mode, syslog_server, syslog_port)
 
     def main():
         if host_os == "nt" or host_os == "posix":
-            tcp_listener()
+            menu()
         else:
-            raise OSError("Operating system is not supported")
+            raise OSError("Operating system is not supported. Use either "
+                          "Windows or Linux.")
 
 else:
     print("Can't call functions externally.")
 
-add_linux_firewall_rule("127.0.0.1", "firewalld")
+# add_linux_firewall_rule("127.0.0.1", "firewalld")
+
+main()
