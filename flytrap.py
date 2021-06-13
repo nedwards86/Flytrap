@@ -49,7 +49,8 @@ if __name__ == "__main__":
         tcp_socket.bind(host_address)
         while True:
             tcp_socket.listen()
-            print("Listening on " + local_ip + ":" + str(port))
+            print("Listening on " + local_ip + ":" + str(port) + ". Ctrl + c "
+                                                                 "to abort.")
             connection, attacker_ip = tcp_socket.accept()
             if connection:
                 connection.close()
@@ -59,8 +60,9 @@ if __name__ == "__main__":
                     if host_os == "nt":
                         add_windows_firewall_rule(attacker_ip[0])
                     elif host_os == "posix":
-                        pass
-                        # add_linux_firewall_rule(attacker_ip[0])
+                        firewall_package = check_linux_firewall()
+                        add_linux_firewall_rule(attacker_ip[0],
+                                                firewall_package)
                     else:
                         raise OSError("OS not supported.")
 
@@ -133,8 +135,9 @@ if __name__ == "__main__":
                             "source address='" + attacker_ip + \
                             "' reject\""
                 if "success" in str(subprocess.check_output(
-                        rule_text)) and str(subprocess.check_output(
-                        "firewall-cmd --reload")):
+                        rule_text, shell=True)) and str(
+                    subprocess.check_output("firewall-cmd --reload",
+                                            shell=True)):
                     print(attacker_ip +
                           " has been successfully blocked.")
                 else:
@@ -194,7 +197,7 @@ if __name__ == "__main__":
         elif port == "q" or port == "Q":
             print("Exiting.")
             quit()
-        elif int(port) not in range(1, 65545):
+        elif int(port) not in range(1, 65535):
             print("Not a valid port number.")
         else:
             pass
@@ -234,7 +237,16 @@ if __name__ == "__main__":
 
     def main():
         if host_os == "nt" or host_os == "posix":
-            menu()
+            print("Checking firewall...")
+            if host_os == "nt" and check_windows_firewall() is True:
+                print("Supported firewall detected.")
+                menu()
+            elif host_os == "posix" and check_linux_firewall() is not False:
+                print("Supported firewall detected.")
+                menu()
+            else:
+                print("No supported firewalls running. Stopping.")
+                quit()
         else:
             raise OSError("Operating system is not supported. Use either "
                           "Windows or Linux.")
