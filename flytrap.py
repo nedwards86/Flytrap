@@ -144,7 +144,9 @@ if __name__ == "__main__":
                     print("Error adding firewall rule to block "
                           + attacker_ip)
             elif firewall_package == "iptables":
-                pass
+                rule_text = "iptables -I INPUT -s " + attacker_ip + " -j DROP"
+                subprocess.check_output(rule_text, shell=True)
+                print(attacker_ip + " has been successfully blocked.")
             else:
                 pass
 
