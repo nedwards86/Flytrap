@@ -116,11 +116,17 @@ if __name__ == "__main__":
                     firewall_package = "iptables"
                     return firewall_package
             except subprocess.CalledProcessError:
-                return False
+                try:
+                    if "active (exited)" in str(subprocess.check_output(
+                            'systemctl status ufw', shell=True)):
+                        firewall_package = "ufw"
+                        return firewall_package
+                except subprocess.CalledProcessError:
+                    return False
 
 
     def add_linux_firewall_rule(attacker_ip, firewall_package):
-        # This still needs to be tested. Not ready to use.
+        # TODO troubleshoot ufw. it's generating extra output in ubuntu
         """
         Automatically adds a firewall rule blocking the attacker.
         :param attacker_ip: str - IP address of attacker.
@@ -147,12 +153,18 @@ if __name__ == "__main__":
                 rule_text = "iptables -I INPUT -s " + attacker_ip + " -j DROP"
                 subprocess.check_output(rule_text, shell=True)
                 print(attacker_ip + " has been successfully blocked.")
+            elif firewall_package == "ufw":
+                rule_text = "ufw deny from " + attacker_ip
+                if "Rule added" in str(subprocess.check_output(rule_text,
+                                                               shell=True)):
+                    print(attacker_ip + " has been successfully blocked.")
             else:
                 pass
 
 
     def send_syslog(attacker_ip, syslog_server="127.0.0.1",
                     syslog_port=514):
+        # TODO look into seeing if you can support syslog over TLS
         """
         Sends log to syslog server.
         :param attacker_ip: str - IP address of attacker.
@@ -174,7 +186,8 @@ if __name__ == "__main__":
         Interactive menu for users calling the program directly without
         arguments. Gathers input and passes it to tcp_listener()
         """
-        # Not ready to use. We need to add input validation.
+        # TODO add input validation
+        # TODO add ascii art for menu
         print("Some sweet ascii art here maybe?")
         print("-" * 80)
         print("This software provides ABSOLUTELY NO WARRANTY. Use at your "
@@ -256,6 +269,7 @@ if __name__ == "__main__":
 else:
     print("Can't call functions externally.")
 
+# TODO add options for cli support
 # add_linux_firewall_rule("127.0.0.1", "firewalld")
 
 main()
