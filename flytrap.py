@@ -47,8 +47,16 @@ if __name__ == "__main__":
         tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host_address = (local_ip, port)
         tcp_socket.bind(host_address)
+        if host_os == "posix":
+            print("Looks like you're on Linux. Checking your firewall package."
+                  " You may see a couple warnings below. It's fine.")
+            firewall_package = check_linux_firewall()
+        else:
+            pass
+
         while True:
             tcp_socket.listen()
+            print("-" * 80)
             print("Listening on " + local_ip + ":" + str(port) + ". Ctrl + c "
                                                                  "to abort.")
             connection, attacker_ip = tcp_socket.accept()
@@ -60,7 +68,6 @@ if __name__ == "__main__":
                     if host_os == "nt":
                         add_windows_firewall_rule(attacker_ip[0])
                     elif host_os == "posix":
-                        firewall_package = check_linux_firewall()
                         add_linux_firewall_rule(attacker_ip[0],
                                                 firewall_package)
                     else:
@@ -126,7 +133,6 @@ if __name__ == "__main__":
 
 
     def add_linux_firewall_rule(attacker_ip, firewall_package):
-        # TODO troubleshoot ufw. it's generating extra output in ubuntu
         """
         Automatically adds a firewall rule blocking the attacker.
         :param attacker_ip: str - IP address of attacker.
@@ -187,8 +193,6 @@ if __name__ == "__main__":
         arguments. Gathers input and passes it to tcp_listener()
         """
         # TODO add input validation
-        # TODO add ascii art for menu
-        print("Some sweet ascii art here maybe?")
         print("-" * 80)
         print("This software provides ABSOLUTELY NO WARRANTY. Use at your "
               "own risk.")
