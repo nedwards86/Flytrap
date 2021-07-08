@@ -48,17 +48,17 @@ if __name__ == "__main__":
         host_address = (local_ip, port)
         tcp_socket.bind(host_address)
         if host_os == "posix":
-            print("Looks like you're on Linux. Checking your firewall package."
-                  " You may see a couple warnings below. It's fine.")
+            print("Looks like you're on Linux. Checking your firewall "
+                  "package. You may see a couple warnings below. It's "
+                  "fine.")
             firewall_package = check_linux_firewall()
         else:
             pass
-
+        print("-" * 80)
+        print("Listening on " + local_ip + ":" + str(port) + ". Ctrl + c "
+                                                             "to abort.")
         while True:
             tcp_socket.listen()
-            print("-" * 80)
-            print("Listening on " + local_ip + ":" + str(port) + ". Ctrl + c "
-                                                                 "to abort.")
             connection, attacker_ip = tcp_socket.accept()
             if connection:
                 connection.close()
@@ -202,21 +202,22 @@ if __name__ == "__main__":
         print("-" * 80)
         local_ip = input("Enter the local IP address you'd like to use ["
                          "Default - " + get_ip() + "]: ")
+
         if local_ip == "":
             local_ip = get_ip()
-        elif local_ip == "q" or local_ip == "Q":
+        elif local_ip.casefold() == "q" or local_ip.casefold() == "quit":
             print("Exiting.")
             quit()
         else:
-            pass
+            print("Please enter a valid IP address.")
 
         port = input("Enter the TCP port to listen on [Default - 9000]: ")
         if port == "":
             port = 9000
-        elif port == "q" or port == "Q":
+        elif port.casefold() == "q" or port.casefold() == "quit":
             print("Exiting.")
             quit()
-        elif int(port) not in range(1, 65535):
+        elif int(port) not in range(0, 65536):
             print("Not a valid port number.")
         else:
             pass
@@ -224,7 +225,7 @@ if __name__ == "__main__":
         mode = input("Run in active or passive mode [Default - active]: ")
         if mode == "":
             mode = "active"
-        elif mode == "q" or mode == "Q":
+        elif mode.casefold() == "q" or mode.casefold() == "quit":
             print("Exiting.")
             quit()
         else:
@@ -234,7 +235,8 @@ if __name__ == "__main__":
                               "[Default - 127.0.0.1]: ")
         if syslog_server == "":
             syslog_server = "127.0.0.1"
-        elif syslog_server == "q" or syslog_server == "Q":
+        elif syslog_server.casefold() == "q" or syslog_server.casefold() == \
+                "quit":
             print("Exiting.")
             quit()
         else:
@@ -243,14 +245,13 @@ if __name__ == "__main__":
         syslog_port = input("Enter the syslog port to use [Default - 514]: ")
         if syslog_port == "":
             syslog_port = 514
-        elif syslog_port == "q" or syslog_port == "Q":
+        elif syslog_port.casefold() == "q" or syslog_port.casefold() == "quit":
             print("Exiting.")
             quit()
-        elif int(syslog_port) not in range(1, 65545):
+        elif int(syslog_port) not in range(0, 65536):
             print("Not a valid port number.")
         else:
             pass
-        print(local_ip, port, mode, syslog_server, syslog_port)
 
         tcp_listener(local_ip, port, mode, syslog_server, syslog_port)
 
@@ -274,6 +275,5 @@ else:
     print("Can't call functions externally.")
 
 # TODO add options for cli support
-# add_linux_firewall_rule("127.0.0.1", "firewalld")
 
 main()
