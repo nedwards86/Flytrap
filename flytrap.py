@@ -170,7 +170,6 @@ if __name__ == "__main__":
 
     def send_syslog(attacker_ip, syslog_server="127.0.0.1",
                     syslog_port=514):
-        # TODO look into seeing if you can support syslog over TLS
         """
         Sends log to syslog server.
         :param attacker_ip: str - IP address of attacker.
@@ -217,10 +216,12 @@ if __name__ == "__main__":
         elif port.casefold() == "q" or port.casefold() == "quit":
             print("Exiting.")
             quit()
+        # elif port is not int:
+        #     print("Please enter an integer.")
         elif int(port) not in range(0, 65536):
             print("Not a valid port number.")
         else:
-            pass
+            port = int(port)
 
         mode = input("Run in active or passive mode [Default - active]: ")
         if mode == "":
@@ -275,5 +276,7 @@ else:
     print("Can't call functions externally.")
 
 # TODO add options for cli support
+
+# TODO add system logging in addition to syslog
 
 main()
