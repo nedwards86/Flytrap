@@ -191,7 +191,7 @@ if __name__ == "__main__":
         Interactive menu for users calling the program directly without
         arguments. Gathers input and passes it to tcp_listener()
         """
-        # TODO add input validation
+        # TODO add input validation for IP addresses and port numbers
         print("-" * 80)
         print("This software provides ABSOLUTELY NO WARRANTY. Use at your "
               "own risk.")
@@ -223,25 +223,32 @@ if __name__ == "__main__":
         else:
             port = int(port)
 
-        mode = input("Run in active or passive mode [Default - active]: ")
-        if mode == "":
-            mode = "active"
-        elif mode.casefold() == "q" or mode.casefold() == "quit":
-            print("Exiting.")
-            quit()
-        else:
-            mode = mode.casefold()
+        while True:
+            mode = input("Run in active or passive mode [Default - active]: ")
+            if mode == "":
+                mode = "active"
+                break
+            elif mode.casefold() == "q" or mode.casefold() == "quit":
+                print("Exiting.")
+                quit()
+            elif mode.casefold() == "active" or mode.casefold() == "passive":
+                mode = mode.casefold()
+                break
+            else:
+                print("Please enter either active or passive.")
 
-        syslog_server = input("Enter the IP address of your syslog server "
-                              "[Default - 127.0.0.1]: ")
-        if syslog_server == "":
-            syslog_server = "127.0.0.1"
-        elif syslog_server.casefold() == "q" or syslog_server.casefold() == \
-                "quit":
-            print("Exiting.")
-            quit()
-        else:
-            pass
+        while True:
+            syslog_server = input("Enter the IP address of your syslog server "
+                                  "[Default - 127.0.0.1]: ")
+            if syslog_server == "":
+                syslog_server = "127.0.0.1"
+                break
+            elif syslog_server.casefold() == "q" or syslog_server.casefold() \
+                    == "quit":
+                print("Exiting.")
+                quit()
+            else:
+                print("Please enter a valid IP address.")
 
         syslog_port = input("Enter the syslog port to use [Default - 514]: ")
         if syslog_port == "":
