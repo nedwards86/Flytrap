@@ -4,6 +4,7 @@ if __name__ == "__main__":
     import subprocess
     import logging.handlers
     import socket
+    import ipaddress
 
     host_os = os.name
 
@@ -26,6 +27,19 @@ if __name__ == "__main__":
         finally:
             s.close()
         return ip
+
+
+    def verify_ip_address(ip):
+        """Verifies that the provided IP address is valid. Works on both IPv4
+        and IPv6. Returns True if the address is valid, or False if it isn't.
+
+        :param ip: str - passed IP address for validation
+        """
+        try:
+            ipaddress.ip_address(ip)
+            return True
+        except ValueError:
+            return False
 
 
     def tcp_listener(local_ip=get_ip(), port=9000, mode="active",
@@ -191,7 +205,6 @@ if __name__ == "__main__":
         Interactive menu for users calling the program directly without
         arguments. Gathers input and passes it to tcp_listener()
         """
-        # TODO add input validation for IP addresses and port numbers
         print("-" * 80)
         print("This software provides ABSOLUTELY NO WARRANTY. Use at your "
               "own risk.")
@@ -199,29 +212,39 @@ if __name__ == "__main__":
         print("Press Enter to use default values, or type Q at any time to "
               "quit.")
         print("-" * 80)
-        local_ip = input("Enter the local IP address you'd like to use ["
-                         "Default - " + get_ip() + "]: ")
+        while True:
+            local_ip = input("Enter the local IP address you'd like to use ["
+                             "Default - " + get_ip() + "]: ")
+            if local_ip == "":
+                local_ip = get_ip()
+                break
+            elif local_ip.casefold() == "q" or local_ip.casefold() == "quit":
+                print("Exiting.")
+                quit()
+            elif verify_ip_address(local_ip) is True:
+                break
+            else:
+                print("Please enter a valid IP address.")
 
-        if local_ip == "":
-            local_ip = get_ip()
-        elif local_ip.casefold() == "q" or local_ip.casefold() == "quit":
-            print("Exiting.")
-            quit()
-        else:
-            print("Please enter a valid IP address.")
-
-        port = input("Enter the TCP port to listen on [Default - 9000]: ")
-        if port == "":
-            port = 9000
-        elif port.casefold() == "q" or port.casefold() == "quit":
-            print("Exiting.")
-            quit()
-        # elif port is not int:
-        #     print("Please enter an integer.")
-        elif int(port) not in range(0, 65536):
-            print("Not a valid port number.")
-        else:
-            port = int(port)
+        while True:
+            try:
+                port = input("Enter the TCP port to listen on [Default - "
+                             "9000]: ")
+                if port == "":
+                    port = 9000
+                    break
+                elif port.casefold() == "q" or port.casefold() == "quit":
+                    print("Exiting.")
+                    quit()
+                elif int(port) not in range(0, 65536):
+                    print("Please enter a valid port number. Valid ports are "
+                          "0 - 65535")
+                else:
+                    port = int(port)
+                    break
+            except ValueError:
+                print("Please enter a valid port number. Valid ports are 0 -"
+                      " 65535")
 
         while True:
             mode = input("Run in active or passive mode [Default - active]: ")
@@ -247,19 +270,31 @@ if __name__ == "__main__":
                     == "quit":
                 print("Exiting.")
                 quit()
+            elif verify_ip_address(syslog_server) is True:
+                break
             else:
                 print("Please enter a valid IP address.")
 
-        syslog_port = input("Enter the syslog port to use [Default - 514]: ")
-        if syslog_port == "":
-            syslog_port = 514
-        elif syslog_port.casefold() == "q" or syslog_port.casefold() == "quit":
-            print("Exiting.")
-            quit()
-        elif int(syslog_port) not in range(0, 65536):
-            print("Not a valid port number.")
-        else:
-            pass
+        while True:
+            try:
+                syslog_port = input("Enter the syslog port to use [Default - "
+                                    "514]: ")
+                if syslog_port == "":
+                    syslog_port = 514
+                    break
+                elif syslog_port.casefold() == "q" or syslog_port.casefold() \
+                        == "quit":
+                    print("Exiting.")
+                    quit()
+                elif int(syslog_port) not in range(0, 65536):
+                    print("Please enter a valid port number. Valid ports are "
+                          "0 - 65535")
+                else:
+                    syslog_port = int(syslog_port)
+                    break
+            except ValueError:
+                print("Please enter a valid port number. Valid ports are 0 -"
+                      " 65535")
 
         tcp_listener(local_ip, port, mode, syslog_server, syslog_port)
 
@@ -282,8 +317,5 @@ if __name__ == "__main__":
 else:
     print("Can't call functions externally.")
 
-# TODO add options for cli support
-
-# TODO add system logging in addition to syslog
 
 main()
