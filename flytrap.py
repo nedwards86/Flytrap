@@ -122,16 +122,20 @@ if __name__ == "__main__":
         :param attacker_ip: str - IP address of attacker.
         :param listening_ip: str - IP address flytrap is listening on.
         """
-        add_rule_result = subprocess.check_output(
-            'netsh advfirewall firewall add rule name="flytrap - "'
-            + attacker_ip + ' description="Rule automatically added by '
-                            'flytrap." dir=in action=block '
-                            'protocol=any localip=' + listening_ip +
-            ' remoteip=' + attacker_ip)
-        if "Ok." in str(add_rule_result):
-            print(attacker_ip + " has been successfully blocked.")
-        else:
-            print("Error adding firewall rule to block " + attacker_ip)
+        try:
+            add_rule_result = subprocess.check_output(
+                'netsh advfirewall firewall add rule name="flytrap - "'
+                + attacker_ip + ' description="Rule automatically added by '
+                                'flytrap." dir=in action=block '
+                                'protocol=any localip=' + listening_ip +
+                ' remoteip=' + attacker_ip)
+            if "Ok." in str(add_rule_result):
+                print(attacker_ip + " has been successfully blocked.")
+            else:
+                print("Error adding firewall rule to block " + attacker_ip)
+        except subprocess.CalledProcessError:
+            print("Unable to add firewall rule. Flytrap needs to be run as "
+                  "administrator.")
 
 
     def check_linux_firewall():
@@ -172,43 +176,47 @@ if __name__ == "__main__":
         on system.
         """
 
-        if firewall_package is not False:
-            if firewall_package == "firewalld":
-                if ":" in attacker_ip:
-                    rule_text = "firewall-cmd --permanent " \
-                                "--add-rich-rule=\"rule family='ipv6' " \
-                                "source address='" + attacker_ip + \
-                                "' reject\""
-                else:
-                    rule_text = "firewall-cmd --permanent " \
-                                "--add-rich-rule=\"rule family='ipv4' " \
-                                "source address='" + attacker_ip + \
-                                "' reject\""
-                if "success" in str(subprocess.check_output(
-                        rule_text, shell=True)) and str(
-                    subprocess.check_output("firewall-cmd --reload",
-                                            shell=True)):
-                    print(attacker_ip +
-                          " has been successfully blocked.")
-                else:
-                    print("Error adding firewall rule to block "
-                          + attacker_ip)
-            elif firewall_package == "iptables":
-                if ":" in attacker_ip:
-                    rule_text = "ip6tables -I INPUT -s " + attacker_ip + \
-                                " -j DROP"
-                else:
-                    rule_text = "iptables -I INPUT -s " + attacker_ip + \
-                                " -j DROP"
-                subprocess.check_output(rule_text, shell=True)
-                print(attacker_ip + " has been successfully blocked.")
-            elif firewall_package == "ufw":
-                rule_text = "ufw prepend deny from " + attacker_ip
-                if "Rule added" in str(subprocess.check_output(rule_text,
-                                                               shell=True)):
+        try:
+            if firewall_package is not False:
+                if firewall_package == "firewalld":
+                    if ":" in attacker_ip:
+                        rule_text = "firewall-cmd --permanent " \
+                                    "--add-rich-rule=\"rule family='ipv6' " \
+                                    "source address='" + attacker_ip + \
+                                    "' reject\""
+                    else:
+                        rule_text = "firewall-cmd --permanent " \
+                                    "--add-rich-rule=\"rule family='ipv4' " \
+                                    "source address='" + attacker_ip + \
+                                    "' reject\""
+                    if "success" in str(subprocess.check_output(
+                            rule_text, shell=True)) and str(
+                        subprocess.check_output("firewall-cmd --reload",
+                                                shell=True)):
+                        print(attacker_ip +
+                              " has been successfully blocked.")
+                    else:
+                        print("Error adding firewall rule to block "
+                              + attacker_ip)
+                elif firewall_package == "iptables":
+                    if ":" in attacker_ip:
+                        rule_text = "ip6tables -I INPUT -s " + attacker_ip + \
+                                    " -j DROP"
+                    else:
+                        rule_text = "iptables -I INPUT -s " + attacker_ip + \
+                                    " -j DROP"
+                    subprocess.check_output(rule_text, shell=True)
                     print(attacker_ip + " has been successfully blocked.")
-            else:
-                pass
+                elif firewall_package == "ufw":
+                    rule_text = "ufw prepend deny from " + attacker_ip
+                    if "Rule added" in str(subprocess.check_output(rule_text,
+                                                                shell=True)):
+                        print(attacker_ip + " has been successfully blocked.")
+                else:
+                    pass
+        except subprocess.CalledProcessError:
+            print("Unable to add firewall rule. Flytrap needs to be run as "
+                  "root.")
 
 
     def send_syslog(attacker_ip, syslog_server="127.0.0.1",
@@ -229,7 +237,7 @@ if __name__ == "__main__":
         logger.critical("flytrap: " + attacker_ip + " took the bait!")
 
 
-    def menu():
+    def menu(no_firewalls=False):
         """
         Interactive menu for users calling the program directly without
         arguments. Gathers input and passes it to tcp_listener()
@@ -288,21 +296,24 @@ if __name__ == "__main__":
             quit()
 
         try:
-            while True:
-                mode = input("Run in active or passive mode [Default - "
-                             "active]: ")
-                if mode == "":
-                    mode = "active"
-                    break
-                elif mode.casefold() == "q" or mode.casefold() == "quit":
-                    print("Exiting.")
-                    quit()
-                elif mode.casefold() == "active" or mode.casefold() == \
-                        "passive":
-                    mode = mode.casefold()
-                    break
-                else:
-                    print("Please enter either active or passive.")
+            if no_firewalls is True:
+                mode = "passive"
+            else:
+                while True:
+                    mode = input("Run in active or passive mode [Default - "
+                                 "active]: ")
+                    if mode == "":
+                        mode = "active"
+                        break
+                    elif mode.casefold() == "q" or mode.casefold() == "quit":
+                        print("Exiting.")
+                        quit()
+                    elif mode.casefold() == "active" or mode.casefold() == \
+                            "passive":
+                        mode = mode.casefold()
+                        break
+                    else:
+                        print("Please enter either active or passive.")
         except KeyboardInterrupt:
             print("\nQuitting.")
             quit()
@@ -364,8 +375,10 @@ if __name__ == "__main__":
                 print("Supported firewall detected.")
                 menu()
             else:
-                print("No supported firewalls running. Stopping.")
-                quit()
+                print("WARNING: No supported firewalls running. Flytrap will "
+                      "only run in passive mode.")
+                no_firewalls = True
+                menu(no_firewalls)
         else:
             raise OSError("Operating system is not supported. Use either "
                           "Windows or Linux.")
