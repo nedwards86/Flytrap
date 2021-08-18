@@ -30,4 +30,4 @@ not running on the same system as Flytrap. This defaults to 127.0.0.1.
 **Syslog port:** This is the remote port that the syslog service will be listening on to receive any syslog messages 
 sent. Default is 514.
 
-Please report any issues encountered by creating an issue on github.
+Please report any issues encountered by creating an issue at https://github.com/nedwards86/Flytrap/issues.
