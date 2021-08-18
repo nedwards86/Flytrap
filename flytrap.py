@@ -94,7 +94,7 @@ if __name__ == "__main__":
                     send_syslog(attacker_ip[0], syslog_server, syslog_port)
                     if mode == "active":
                         if host_os == "nt":
-                            add_windows_firewall_rule(attacker_ip[0])
+                            add_windows_firewall_rule(attacker_ip[0], local_ip)
                         elif host_os == "posix":
                             add_linux_firewall_rule(attacker_ip[0],
                                                     firewall_package)
@@ -116,16 +116,17 @@ if __name__ == "__main__":
             return False
 
 
-    def add_windows_firewall_rule(attacker_ip):
+    def add_windows_firewall_rule(attacker_ip, listening_ip):
         """
         Automatically adds a firewall rule blocking the attacker.
         :param attacker_ip: str - IP address of attacker.
+        :param listening_ip: str - IP address flytrap is listening on.
         """
         add_rule_result = subprocess.check_output(
             'netsh advfirewall firewall add rule name="flytrap - "'
             + attacker_ip + ' description="Rule automatically added by '
                             'flytrap." dir=in action=block '
-                            'protocol=any localip=' + get_ip() +
+                            'protocol=any localip=' + listening_ip +
             ' remoteip=' + attacker_ip)
         if "Ok." in str(add_rule_result):
             print(attacker_ip + " has been successfully blocked.")
@@ -173,10 +174,16 @@ if __name__ == "__main__":
 
         if firewall_package is not False:
             if firewall_package == "firewalld":
-                rule_text = "firewall-cmd --permanent " \
-                            "--add-rich-rule=\"rule family='ipv4' " \
-                            "source address='" + attacker_ip + \
-                            "' reject\""
+                if ":" in attacker_ip:
+                    rule_text = "firewall-cmd --permanent " \
+                                "--add-rich-rule=\"rule family='ipv6' " \
+                                "source address='" + attacker_ip + \
+                                "' reject\""
+                else:
+                    rule_text = "firewall-cmd --permanent " \
+                                "--add-rich-rule=\"rule family='ipv4' " \
+                                "source address='" + attacker_ip + \
+                                "' reject\""
                 if "success" in str(subprocess.check_output(
                         rule_text, shell=True)) and str(
                     subprocess.check_output("firewall-cmd --reload",
@@ -187,11 +194,16 @@ if __name__ == "__main__":
                     print("Error adding firewall rule to block "
                           + attacker_ip)
             elif firewall_package == "iptables":
-                rule_text = "iptables -I INPUT -s " + attacker_ip + " -j DROP"
+                if ":" in attacker_ip:
+                    rule_text = "ip6tables -I INPUT -s " + attacker_ip + \
+                                " -j DROP"
+                else:
+                    rule_text = "iptables -I INPUT -s " + attacker_ip + \
+                                " -j DROP"
                 subprocess.check_output(rule_text, shell=True)
                 print(attacker_ip + " has been successfully blocked.")
             elif firewall_package == "ufw":
-                rule_text = "ufw deny from " + attacker_ip
+                rule_text = "ufw prepend deny from " + attacker_ip
                 if "Rule added" in str(subprocess.check_output(rule_text,
                                                                shell=True)):
                     print(attacker_ip + " has been successfully blocked.")
