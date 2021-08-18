@@ -241,6 +241,9 @@ if __name__ == "__main__":
         """
         Interactive menu for users calling the program directly without
         arguments. Gathers input and passes it to tcp_listener()
+        :param no_firewalls: bool - If the system could not find a supported
+        firewall running, this is used by the menu to force the application
+        into passive mode.
         """
         print("-" * 80)
         print("Flytrap v1.0.0 \"Sawtooth\"")
